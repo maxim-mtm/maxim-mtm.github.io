@@ -1,36 +1,128 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My GitHub Repositories</title>
-</head>
+  <title>My GitHub Pages Projects</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-  body { font-family: Arial; padding: 20px; }
-  a { text-decoration: none; color: blue; }
-  a:hover { text-decoration: underline; }
-</style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: #f5f7fa;
+      color: #333;
+    }
 
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    li {
+      background: white;
+      padding: 1.25rem;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    li:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    a {
+      color: #007acc;
+      text-decoration: none;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .loading {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
 <body>
-  <h1>My GitHub Repositories</h1>
+  <h1>My GitHub Pages Projects</h1>
+  <div class="loading" id="loading">Loading repositories...</div>
   <ul id="repo-list"></ul>
 
   <script>
-    fetch('https://api.github.com/users/maxim-mtm/repos')
-      .then(response => response.json())
-      .then(data => {
-        const repoList = document.getElementById('repo-list');
-        data.forEach(repo => {
-          const li = document.createElement('li');
-          const a = document.createElement('a');
-          a.href = `https://maxim-mtm.github.io/${repo.name}/`;
-          a.textContent = repo.name;
-          a.target = '_blank';
-          li.appendChild(a);
-          repoList.appendChild(li);
+    const username = "maxim-mtm";
+    const repoList = document.getElementById("repo-list");
+    const loading = document.getElementById("loading");
+
+    fetch(`https://api.github.com/users/${username}/repos`)
+      .then(res => res.json())
+      .then(repos => {
+        const checks = repos.map(repo => {
+          const url = `https://${username}.github.io/${repo.name}/`;
+
+          return fetch(url, { method: 'HEAD' })
+            .then(response => {
+              if (response.ok) {
+                return {
+                  name: repo.name,
+                  url: url,
+                  description: repo.description
+                };
+              } else {
+                return null;
+              }
+            })
+            .catch(() => null); // Ignore fetch errors
         });
+
+        return Promise.all(checks);
+      })
+      .then(results => {
+        loading.style.display = 'none';
+        const validRepos = results.filter(Boolean);
+
+        if (validRepos.length === 0) {
+          repoList.innerHTML = "<p>No GitHub Pages repositories found.</p>";
+        } else {
+          validRepos.forEach(repo => {
+            const li = document.createElement("li");
+            const a = document.createElement("a");
+            a.href = repo.url;
+            a.target = "_blank";
+            a.textContent = repo.name;
+
+            li.appendChild(a);
+            if (repo.description) {
+              const desc = document.createElement("p");
+              desc.textContent = repo.description;
+              desc.style.marginTop = "0.5rem";
+              desc.style.fontSize = "0.9rem";
+              desc.style.color = "#666";
+              li.appendChild(desc);
+            }
+            repoList.appendChild(li);
+          });
+        }
       })
       .catch(error => {
-        console.error('Error fetching repos:', error);
+        loading.textContent = "Error loading repositories.";
+        console.error(error);
       });
   </script>
 </body>
